@@ -25,8 +25,3 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-
-class ProductImageUploadSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField()
-    image = serializers.ImageField()

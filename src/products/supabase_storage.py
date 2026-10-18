@@ -1,54 +1,75 @@
+
 import os
 import uuid
 from pathlib import Path
 
 import httpx
-from dotenv import load_dotenv
+from django.core.files.storage import Storage
+from django.utils.deconstructible import deconstructible
 
-load_dotenv()
 
-SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
-SUPABASE_SECRET_KEY = os.environ["SUPABASE_SECRET_KEY"]
 BUCKET_NAME = "product-images"
 
 
-def upload_image(file):
-    extension = Path(file.name).suffix.lower()
-    allowed_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+@deconstructible
+class SupabaseStorage(Storage):
+    def _settings(self):
+        return (
+            os.environ["SUPABASE_URL"].rstrip("/"),
+            os.environ["SUPABASE_SECRET_KEY"],
+        )
 
-    if extension not in allowed_extensions:
-        raise ValueError("Only JPG, PNG, and WEBP images are allowed.")
+    def _save(self, name, content):
+        supabase_url, secret_key = self._settings()
 
-    content_type = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-    }[extension]
+        extension = Path(name).suffix.lower()
+        file_path = f"products/{uuid.uuid4().hex}{extension}"
+        url = (
+            f"{supabase_url}/storage/v1/object/"
+            f"{BUCKET_NAME}/{file_path}"
+        )
 
-    file_path = f"{uuid.uuid4().hex}{extension}"
-    url = (
-        f"{SUPABASE_URL}/storage/v1/object/"
-        f"{BUCKET_NAME}/{file_path}"
-    )
+        headers = {
+            "Authorization": f"Bearer {secret_key}",
+            "apikey": secret_key,
+            "Content-Type": getattr(
+                content, "content_type", None
+            ) or "application/octet-stream",
+        }
 
-    headers = {
-        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
-        "apikey": SUPABASE_SECRET_KEY,
-        "Content-Type": content_type,
-    }
+        content.seek(0)
+        response = httpx.post(
+            url,
+            headers=headers,
+            content=content.read(),
+            timeout=30.0,
+        )
+        response.raise_for_status()
 
-    file.seek(0)
+        return file_path
 
-    response = httpx.post(
-        url,
-        headers=headers,
-        content=file.read(),
-        timeout=30.0,
-    )
-    response.raise_for_status()
+    def delete(self, name):
+        supabase_url, secret_key = self._settings()
+        url = (
+            f"{supabase_url}/storage/v1/object/"
+            f"{BUCKET_NAME}/{name}"
+        )
 
-    return (
-        f"{SUPABASE_URL}/storage/v1/object/public/"
-        f"{BUCKET_NAME}/{file_path}"
-    )
+        headers = {
+            "Authorization": f"Bearer {secret_key}",
+            "apikey": secret_key,
+        }
+
+        response = httpx.delete(url, headers=headers, timeout=30.0)
+        response.raise_for_status()
+
+    def exists(self, name):
+        # Filenames are UUID-based and generated in _save().
+        return False
+
+    def url(self, name):
+        supabase_url, _ = self._settings()
+        return (
+            f"{supabase_url}/storage/v1/object/public/"
+            f"{BUCKET_NAME}/{name}"
+        )

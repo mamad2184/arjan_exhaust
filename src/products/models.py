@@ -1,4 +1,30 @@
+from pathlib import Path
+
+from django.core.exceptions import ValidationError
 from django.db import models
+from PIL import Image as PillowImage
+from PIL import UnidentifiedImageError
+
+from .supabase_storage import SupabaseStorage
+
+
+def validate_product_image(image):
+    if image.size > 5 * 1024 * 1024:
+        raise ValidationError("Image files must be 5 MB or smaller.")
+
+    if Path(image.name).suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}:
+        raise ValidationError("Only JPG, PNG, and WEBP images are allowed.")
+
+    try:
+        image.seek(0)
+        with PillowImage.open(image) as uploaded_image:
+            if uploaded_image.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValidationError("Only JPG, PNG, and WEBP images are allowed.")
+            uploaded_image.verify()
+    except (UnidentifiedImageError, OSError, SyntaxError) as error:
+        raise ValidationError("Upload a valid JPG, PNG, or WEBP image.") from error
+    finally:
+        image.seek(0)
 
 
 
@@ -34,7 +60,13 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image_url = models.URLField(max_length=500)
+    
+    image = models.ImageField(
+        upload_to="products/",
+        storage=SupabaseStorage(),
+        blank=True,
+        validators=[validate_product_image],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
