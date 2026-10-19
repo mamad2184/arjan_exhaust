@@ -42,7 +42,7 @@ a { color: inherit; }
 .sidebar-rule { height: 1px; margin: 28px 0 24px; background: #ffffff24; }
 .sidebar-label { margin: 0 0 10px; color: #8eafaa; font-size: 10px; font-weight: 700; }
 .sidebar-nav { display: grid; gap: 5px; }
-.sidebar-link { display: flex; min-height: 46px; align-items: center; gap: 12px; padding: 0 11px; border-inline-start: 3px solid transparent; color: #dce9e5; font-size: 12px; text-decoration: none; transition: background .18s ease, color .18s ease; }
+.sidebar-link { display: flex; width: 100%; min-height: 46px; align-items: center; gap: 12px; padding: 0 11px; border: 0; border-inline-start: 3px solid transparent; background: transparent; color: #dce9e5; cursor: pointer; font-size: 12px; text-align: start; text-decoration: none; transition: background .18s ease, color .18s ease; }
 .sidebar-link:hover, .sidebar-link[aria-current="page"] { border-inline-start-color: var(--coral); background: #ffffff12; color: #fff; }
 .sidebar-link-index { color: #8eafaa; font-size: 10px; font-variant-numeric: tabular-nums; }
 .sidebar-bottom { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; margin-top: auto; padding: 15px 0 2px; color: #dce9e5; font-size: 11px; }
