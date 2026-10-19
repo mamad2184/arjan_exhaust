@@ -5,8 +5,7 @@ from django.db import models
 from PIL import Image as PillowImage
 from PIL import UnidentifiedImageError
 
-from .supabase_storage import SupabaseStorage
-
+from utils.products.supabase_storage import SupabaseStorage
 
 def validate_product_image(image):
     if image.size > 5 * 1024 * 1024:

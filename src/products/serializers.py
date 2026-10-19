@@ -9,9 +9,22 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "price"]
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductImage
+        fields = ["id", "image_url"] 
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
+
 class ProductDetailSerializer(serializers.ModelSerializer):
     cars = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    images = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product

@@ -1,12 +1,10 @@
-
 import os
 import uuid
 from pathlib import Path
 
 import httpx
 from django.core.files.storage import Storage
-from django.utils.deconstructible import deconstructible
-
+from django.utils.deconstruct import deconstructible
 
 BUCKET_NAME = "product-images"
 
