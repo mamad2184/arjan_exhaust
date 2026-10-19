@@ -1,12 +1,19 @@
-
 from rest_framework import serializers
 from .models import Product, Car, ProductImage
 
 
+class CarCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Car
+        fields = ["id", "brand"]
+
+
 class ProductListSerializer(serializers.ModelSerializer):
+    cars = CarCategorySerializer(many=True, read_only=True)
+
     class Meta:
         model = Product
-        fields = ["id", "name", "price"]
+        fields = ["id", "name", "price", "cars"]
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -14,7 +21,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductImage
-        fields = ["id", "image_url"] 
+        fields = ["id", "image_url"]
 
     def get_image_url(self, obj):
         if obj.image:
