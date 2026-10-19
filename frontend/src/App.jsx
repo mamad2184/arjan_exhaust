@@ -191,6 +191,18 @@ function App() {
   const [reloadKey, setReloadKey] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [selectedBrand, setSelectedBrand] = useState('all')
+
+  const brandFilters = [
+    { id: 'all', label: 'همه' },
+    { id: 'saipa', label: 'سایپا' },
+    { id: 'iran_khodro', label: 'ایرانخودرو' },
+    { id: 'other', label: 'ماشین‌های دیگر' },
+  ]
+
+  const filteredProducts = selectedBrand === 'all'
+    ? products
+    : products.filter((product) => product.cars?.some((car) => car.brand === selectedBrand))
 
   useEffect(() => {
     let active = true
@@ -236,11 +248,22 @@ function App() {
         <p className="sidebar-caption">قطعات تخصصی سیستم اگزوز</p>
         <div className="sidebar-rule" />
         <p className="sidebar-label">فروشگاه</p>
-        <nav aria-label="ناوبری فروشگاه" className="sidebar-nav">
-          <a aria-current="page" className="sidebar-link" href="#catalog" onClick={() => setSidebarOpen(false)}>
-            <span className="sidebar-link-index">۰۱</span>
-            <span>کاتالوگ محصولات</span>
-          </a>
+        <nav aria-label="دسته‌بندی محصولات بر اساس خودرو" className="sidebar-nav">
+          {brandFilters.map((filter, index) => (
+            <button
+              aria-current={selectedBrand === filter.id ? 'page' : undefined}
+              className="sidebar-link"
+              key={filter.id}
+              onClick={() => {
+                setSelectedBrand(filter.id)
+                setSidebarOpen(false)
+              }}
+              type="button"
+            >
+              <span className="sidebar-link-index">{formatId(index + 1, 2)}</span>
+              <span>{filter.label}</span>
+            </button>
+          ))}
         </nav>
         <div className="sidebar-bottom">
           <span className="sidebar-accent" />
@@ -280,9 +303,9 @@ function App() {
 
           <section aria-labelledby="catalog-title" className="catalog-content" id="catalog">
             <div className="catalog-toolbar">
-              <h2 id="catalog-title">همه محصولات</h2>
+              <h2 id="catalog-title">{brandFilters.find((filter) => filter.id === selectedBrand)?.label || 'همه'} محصولات</h2>
               <span className="product-count" aria-live="polite">
-                {loading ? 'در حال بارگذاری' : `${formatId(products.length)} محصول`}
+                {loading ? 'در حال بارگذاری' : `${formatId(filteredProducts.length)} محصول`}
               </span>
             </div>
 
@@ -297,9 +320,9 @@ function App() {
               <div className="product-grid" aria-label="در حال بارگذاری محصولات">
                 {Array.from({ length: 4 }, (_, index) => <div className="product-skeleton" key={index} />)}
               </div>
-            ) : products.length > 0 ? (
+            ) : filteredProducts.length > 0 ? (
               <div className="product-grid">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <ProductCard key={product.id} onSelect={setSelectedProduct} product={product} />
                 ))}
               </div>
@@ -307,7 +330,7 @@ function App() {
               <div className="catalog-state empty-state">
                 <p className="eyebrow">هنوز محصولی ثبت نشده</p>
                 <h3>کاتالوگ در حال آماده‌سازی است.</h3>
-                <p>با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.</p>
+                <p>{selectedBrand === 'all' ? 'با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.' : 'فعلاً محصولی برای این دسته‌بندی ثبت نشده است.'}</p>
               </div>
             )}
           </section>
