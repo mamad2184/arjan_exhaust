@@ -19,11 +19,31 @@ async function getJson(path) {
   return response.json()
 }
 
+const catalogCacheKey = 'arjan-exhaust-products-v1'
+
+export function getCachedProducts() {
+  try {
+    const cached = localStorage.getItem(catalogCacheKey)
+    return cached ? JSON.parse(cached) : null
+  } catch {
+    return null
+  }
+}
+
 export function fetchProducts() {
   if (!productsRequest) {
-    productsRequest = getJson('/products/').finally(() => {
-      productsRequest = null
-    })
+    productsRequest = getJson('/products/')
+      .then((data) => {
+        try {
+          localStorage.setItem(catalogCacheKey, JSON.stringify(data))
+        } catch {
+          // Storage may be unavailable or full; the API response still works.
+        }
+        return data
+      })
+      .finally(() => {
+        productsRequest = null
+      })
   }
 
   return productsRequest
