@@ -167,14 +167,21 @@ function App() {
 
   useEffect(() => {
     let active = true
+    const cachedProducts = getCachedProducts()
+
+    if (Array.isArray(cachedProducts)) {
+      setProducts(cachedProducts)
+      setLoading(false)
+    }
 
     fetchProducts()
       .then((data) => {
         if (!active) return
         setProducts(Array.isArray(data) ? data : [])
+        setError('')
       })
       .catch((requestError) => {
-        if (active) setError(requestError.message)
+        if (active && !Array.isArray(cachedProducts)) setError(requestError.message)
       })
       .finally(() => {
         if (active) setLoading(false)
