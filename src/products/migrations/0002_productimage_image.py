@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name="image",
             field=models.ImageField(
                 blank=True,
-                storage=products.models.SupabaseStorage(),
+                storage=products.models.SupabaseS3Storage(),
                 upload_to="products/",
                 validators=[products.models.validate_product_image],
             ),

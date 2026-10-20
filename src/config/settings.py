@@ -118,6 +118,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_S3_ENDPOINT_URL = os.getenv("SUPABASE_S3_ENDPOINT_URL")
+SUPABASE_S3_REGION = os.getenv("SUPABASE_S3_REGION")
+SUPABASE_S3_ACCESS_KEY_ID = os.getenv("SUPABASE_S3_ACCESS_KEY_ID")
+SUPABASE_S3_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY")
+SUPABASE_S3_BUCKET = os.getenv("SUPABASE_S3_BUCKET", "product-images")
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
