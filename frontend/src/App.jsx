@@ -27,7 +27,7 @@ function ProductCard({ product, onSelect }) {
     >
       <span className="product-image-wrap">
         {imageUrl ? (
-          <img className="product-image" src={imageUrl} alt={product.name} loading="lazy" />
+          <img className="product-image" src={imageUrl} alt={product.name} loading="lazy" decoding="async" fetchPriority="low" />
         ) : (
           <span className="product-image-fallback" aria-hidden="true">
             <span className="fallback-mark">کد / {formatId(product.id, 2)}</span>
@@ -106,7 +106,7 @@ function ProductDialog({ product, onClose }) {
           <div className="dialog-gallery">
             {images.length > 0 ? (
               images.map((image) => (
-                <img key={image.id} src={image.image_url} alt={product.name} />
+                <img key={image.id} src={image.image_url} alt={product.name} loading="lazy" decoding="async" />
               ))
             ) : (
               <div className="dialog-image-fallback" aria-hidden="true">
