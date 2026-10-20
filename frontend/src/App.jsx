@@ -23,7 +23,6 @@ function ProductCard({ product, onSelect }) {
     <button
       className="product-card"
       onClick={() => onSelect(product)}
-      ref={cardRef}
       type="button"
     >
       <span className="product-image-wrap">
