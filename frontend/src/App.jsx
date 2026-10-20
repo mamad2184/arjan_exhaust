@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchProduct, fetchProducts } from './api/products'
+import { fetchProduct, fetchProducts, getCachedProducts } from './api/products'
 import './App.css'
 
 function formatPrice(value) {
