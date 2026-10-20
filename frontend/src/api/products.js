@@ -1,5 +1,6 @@
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 const detailCache = new Map()
+let productsRequest = null
 
 async function getJson(path) {
   let response
@@ -19,7 +20,13 @@ async function getJson(path) {
 }
 
 export function fetchProducts() {
-  return getJson('/products/')
+  if (!productsRequest) {
+    productsRequest = getJson('/products/').finally(() => {
+      productsRequest = null
+    })
+  }
+
+  return productsRequest
 }
 
 export function fetchProduct(id) {
