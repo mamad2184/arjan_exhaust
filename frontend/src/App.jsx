@@ -17,45 +17,7 @@ function formatId(value, width = 0) {
 }
 
 function ProductCard({ product, onSelect }) {
-  const cardRef = useRef(null)
-  const [imageUrl, setImageUrl] = useState('')
-
-  useEffect(() => {
-    const card = cardRef.current
-    if (!card) return undefined
-
-    let active = true
-    const loadImage = () => {
-      fetchProduct(product.id)
-        .then((detail) => {
-          if (!active) return
-          setImageUrl(detail.images?.find((image) => image.image_url)?.image_url ?? '')
-        })
-        .catch(() => {})
-    }
-
-    if (!('IntersectionObserver' in window)) {
-      loadImage()
-      return () => {
-        active = false
-      }
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-        observer.disconnect()
-        loadImage()
-      },
-      { rootMargin: '180px' },
-    )
-    observer.observe(card)
-
-    return () => {
-      active = false
-      observer.disconnect()
-    }
-  }, [product.id])
+  const imageUrl = product.image_url || ''
 
   return (
     <button
