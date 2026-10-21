@@ -1,4 +1,6 @@
 from django.db.models import Prefetch
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,6 +9,7 @@ from .models import CarVariant, Product, ProductImage
 from .serializers import ProductListSerializer, ProductDetailSerializer
 
 
+@method_decorator(cache_page(60), name="dispatch")
 class ProductListView(APIView):
     def get(self, request):
         products = (
@@ -21,7 +24,9 @@ class ProductListView(APIView):
             .order_by("id")
         )
         serializer = ProductListSerializer(products, many=True)
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        response["Cache-Control"] = "public, max-age=30, stale-while-revalidate=300"
+        return response
 
 
 class ProductDetailView(APIView):
