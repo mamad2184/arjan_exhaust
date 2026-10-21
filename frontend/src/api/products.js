@@ -1,5 +1,6 @@
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 const detailCache = new Map()
+const carListsCache = new Map()
 let productsRequest = null
 
 async function getJson(path) {
@@ -59,4 +60,16 @@ export function fetchProduct(id) {
   }
 
   return detailCache.get(id)
+}
+
+export function fetchCars(brand) {
+  if (!carListsCache.has(brand)) {
+    const request = getJson(`/cars/?brand=${encodeURIComponent(brand)}`).catch((error) => {
+      carListsCache.delete(brand)
+      throw error
+    })
+    carListsCache.set(brand, request)
+  }
+
+  return carListsCache.get(brand)
 }

@@ -5,8 +5,27 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import CarVariant, Product, ProductImage
-from .serializers import ProductListSerializer, ProductDetailSerializer
+from .models import Car, CarVariant, Product, ProductImage
+from .serializers import (
+    CarListSerializer,
+    ProductDetailSerializer,
+    ProductListSerializer,
+)
+
+
+class CarListWithVariantsView(APIView):
+    def get(self, request):
+        cars = Car.objects.prefetch_related("variants").order_by("name", "id")
+        brand = request.query_params.get("brand")
+
+        if brand:
+            valid_brands = {value for value, _ in Car.BRAND_CHOICES}
+            if brand not in valid_brands:
+                return Response({"detail": "Invalid brand."}, status=400)
+            cars = cars.filter(brand=brand)
+
+        serializer = CarListSerializer(cars, many=True)
+        return Response(serializer.data)
 
 
 @method_decorator(cache_page(60), name="dispatch")

@@ -1,6 +1,20 @@
 from rest_framework import serializers
 
-from .models import Product, ProductImage
+from .models import Car, CarVariant, Product, ProductImage
+
+
+class CarVariantListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CarVariant
+        fields = ["id", "model"]
+
+
+class CarListSerializer(serializers.ModelSerializer):
+    variants = CarVariantListSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Car
+        fields = ["id", "name", "brand", "variants"]
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
