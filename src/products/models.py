@@ -1,4 +1,3 @@
-
 import logging
 from pathlib import Path
 
@@ -76,32 +75,11 @@ class Car(models.Model):
         return f"{self.name} ({self.get_brand_display()})"
 
 
-class CarVariant(models.Model):
-    car = models.ForeignKey(
-        Car,
-        on_delete=models.CASCADE,
-        related_name="variants",
-    )
-    model = models.CharField(max_length=100)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["car", "model"],
-                name="unique_car_variant_model",
-            ),
-        ]
-        ordering = ["car__name", "model"]
-
-    def __str__(self):
-        return f"{self.car.name} {self.model}"
-
-
 class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(max_length=500)
-    car_variants = models.ManyToManyField(
-        CarVariant,
+    car = models.ManyToManyField(
+        Car,
         related_name="products",
     )
     price = models.DecimalField(max_digits=10, decimal_places=2)

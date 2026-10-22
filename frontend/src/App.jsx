@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchCars, fetchProduct, fetchProducts, getCachedProducts } from './api/products'
+import {
+  fetchCars,
+  fetchProduct,
+  fetchProducts,
+  getCachedProducts,
+} from './api/products'
 import './App.css'
 
 function formatPrice(value) {
@@ -13,7 +18,9 @@ function formatPrice(value) {
 
 function formatId(value, width = 0) {
   const id = String(value).padStart(width, '0')
-  return new Intl.NumberFormat('fa-IR', { useGrouping: false }).format(Number(id))
+  return new Intl.NumberFormat('fa-IR', {
+    useGrouping: false,
+  }).format(Number(id))
 }
 
 function ProductCard({ product, onSelect }) {
@@ -27,7 +34,14 @@ function ProductCard({ product, onSelect }) {
     >
       <span className="product-image-wrap">
         {imageUrl ? (
-          <img className="product-image" src={imageUrl} alt={product.name} loading="lazy" decoding="async" fetchPriority="low" />
+          <img
+            className="product-image"
+            src={imageUrl}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+          />
         ) : (
           <span className="product-image-fallback" aria-hidden="true">
             <span className="fallback-mark">کد / {formatId(product.id, 2)}</span>
@@ -43,7 +57,9 @@ function ProductCard({ product, onSelect }) {
             <span className="eyebrow">قیمت</span>
             <strong>{formatPrice(product.price)}</strong>
           </span>
-          <span className="product-link">مشاهده جزئیات <span aria-hidden="true">&#8598;</span></span>
+          <span className="product-link">
+            مشاهده جزئیات <span aria-hidden="true">&#8598;</span>
+          </span>
         </span>
       </span>
     </button>
@@ -58,6 +74,7 @@ function ProductDialog({ product, onClose }) {
 
   useEffect(() => {
     let active = true
+
     document.body.classList.add('dialog-open')
     closeButtonRef.current?.focus()
 
@@ -75,6 +92,7 @@ function ProductDialog({ product, onClose }) {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') onClose()
     }
+
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
@@ -85,10 +103,15 @@ function ProductDialog({ product, onClose }) {
   }, [product.id, onClose])
 
   const images = detail?.images?.filter((image) => image.image_url) ?? []
-  const carIds = detail?.cars ?? []
+  const cars = detail?.cars ?? []
 
   return (
-    <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div
+      className="dialog-backdrop"
+      onMouseDown={(event) =>
+        event.target === event.currentTarget && onClose()
+      }
+    >
       <section
         aria-labelledby="dialog-title"
         aria-modal="true"
@@ -96,8 +119,16 @@ function ProductDialog({ product, onClose }) {
         role="dialog"
       >
         <div className="dialog-topline">
-          <span className="eyebrow">جزئیات محصول / {formatId(product.id, 3)}</span>
-          <button aria-label="بستن" className="close-button" onClick={onClose} ref={closeButtonRef} type="button">
+          <span className="eyebrow">
+            جزئیات محصول / {formatId(product.id, 3)}
+          </span>
+          <button
+            aria-label="بستن"
+            className="close-button"
+            onClick={onClose}
+            ref={closeButtonRef}
+            type="button"
+          >
             بستن <span aria-hidden="true">&#215;</span>
           </button>
         </div>
@@ -106,7 +137,13 @@ function ProductDialog({ product, onClose }) {
           <div className="dialog-gallery">
             {images.length > 0 ? (
               images.map((image) => (
-                <img key={image.id} src={image.image_url} alt={product.name} loading="lazy" decoding="async" />
+                <img
+                  key={image.id}
+                  src={image.image_url}
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                />
               ))
             ) : (
               <div className="dialog-image-fallback" aria-hidden="true">
@@ -114,26 +151,46 @@ function ProductDialog({ product, onClose }) {
               </div>
             )}
           </div>
+
           <div className="dialog-copy">
             <p className="eyebrow">ارجان اگزوز / کاتالوگ</p>
             <h2 id="dialog-title">{product.name}</h2>
             <p className="dialog-price">{formatPrice(product.price)}</p>
-            {loading && <p className="dialog-message">در حال دریافت اطلاعات محصول...</p>}
-            {error && <p className="dialog-message error-message">{error}</p>}
+
+            {loading && (
+              <p className="dialog-message">
+                در حال دریافت اطلاعات محصول...
+              </p>
+            )}
+
+            {error && (
+              <p className="dialog-message error-message">{error}</p>
+            )}
+
             {detail && (
               <>
                 <div className="detail-section">
                   <h3>توضیحات</h3>
-                  <p className="description">{detail.description || 'توضیحی برای این محصول ثبت نشده است.'}</p>
+                  <p className="description">
+                    {detail.description ||
+                      'توضیحی برای این محصول ثبت نشده است.'}
+                  </p>
                 </div>
+
                 <div className="detail-section fitment-section">
                   <h3>خودروهای سازگار</h3>
-                  {carIds.length > 0 ? (
+                  {cars.length > 0 ? (
                     <ul className="fitment-list">
-                      {carIds.map((carId) => <li key={carId}>شناسه خودرو {formatId(carId)}</li>)}
+                      {cars.map((car) => (
+                        <li key={car.id}>
+                          {car.name || `شناسه خودرو ${formatId(car.id)}`}
+                        </li>
+                      ))}
                     </ul>
                   ) : (
-                    <p className="description">اطلاعاتی درباره خودروهای سازگار ثبت نشده است.</p>
+                    <p className="description">
+                      اطلاعاتی درباره خودروهای سازگار ثبت نشده است.
+                    </p>
                   )}
                 </div>
               </>
@@ -167,27 +224,51 @@ function App() {
 
   const cars = selectedBrand ? carsByBrand[selectedBrand] ?? [] : []
 
+  const visibleProducts = selectedCar === null
+    ? products
+    : products.filter((product) =>
+        (product.cars ?? []).some(
+          (car) => Number(car.id) === Number(selectedCar),
+        ),
+      )
+
   const loadBrandCars = (brand) => {
-    if (carsByBrand[brand] !== undefined || loadingBrand === brand) return
+    if (
+      carsByBrand[brand] !== undefined ||
+      loadingBrand === brand
+    ) {
+      return
+    }
 
     setLoadingBrand(brand)
-    setCarErrors((currentErrors) => ({ ...currentErrors, [brand]: '' }))
+    setCarErrors((current) => ({ ...current, [brand]: '' }))
+
     fetchCars(brand)
       .then((brandCars) => {
-        setCarsByBrand((currentCars) => ({ ...currentCars, [brand]: brandCars }))
+        setCarsByBrand((current) => ({
+          ...current,
+          [brand]: Array.isArray(brandCars) ? brandCars : [],
+        }))
       })
       .catch((requestError) => {
-        setCarErrors((currentErrors) => ({ ...currentErrors, [brand]: requestError.message }))
+        setCarErrors((current) => ({
+          ...current,
+          [brand]: requestError.message,
+        }))
       })
       .finally(() => {
-        setLoadingBrand((currentBrand) => currentBrand === brand ? null : currentBrand)
+        setLoadingBrand((current) =>
+          current === brand ? null : current,
+        )
       })
   }
 
   const selectBrand = (brand) => {
     const isOpening = selectedBrand !== brand
+
     setSelectedBrand(isOpening ? brand : null)
     setSelectedCar(null)
+
     if (isOpening) loadBrandCars(brand)
   }
 
@@ -207,7 +288,9 @@ function App() {
         setError('')
       })
       .catch((requestError) => {
-        if (active && !Array.isArray(cachedProducts)) setError(requestError.message)
+        if (active && !Array.isArray(cachedProducts)) {
+          setError(requestError.message)
+        }
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -224,6 +307,16 @@ function App() {
     setReloadKey((key) => key + 1)
   }
 
+  const selectedCarName = selectedCar === null
+    ? null
+    : cars.find((car) => Number(car.id) === Number(selectedCar))?.name
+
+  const catalogTitle = selectedCarName || (
+    selectedBrand
+      ? brandFilters.find((brand) => brand.id === selectedBrand)?.label
+      : 'همه محصولات'
+  )
+
   return (
     <div className="store-layout">
       {sidebarOpen && (
@@ -234,12 +327,26 @@ function App() {
           type="button"
         />
       )}
-      <aside aria-label="منوی فروشگاه" className={`store-sidebar${sidebarOpen ? ' is-open' : ''}`} id="store-sidebar" inert={!sidebarOpen}>
+
+      <aside
+        aria-label="منوی فروشگاه"
+        className={`store-sidebar${sidebarOpen ? ' is-open' : ''}`}
+        id="store-sidebar"
+        inert={!sidebarOpen}
+      >
         <div className="sidebar-head">
-          <a aria-label="صفحه اصلی ارجان اگزوز" className="brand" href="#top" onClick={() => setSidebarOpen(false)}>
+          <a
+            aria-label="صفحه اصلی ارجان اگزوز"
+            className="brand"
+            href="#top"
+            onClick={() => setSidebarOpen(false)}
+          >
             <span className="brand-mark">ا</span>
-            <span className="brand-name">ارجان<span>اگزوز</span></span>
+            <span className="brand-name">
+              ارجان<span>اگزوز</span>
+            </span>
           </a>
+
           <button
             aria-label="بستن منو"
             className="sidebar-close"
@@ -249,21 +356,37 @@ function App() {
             <span aria-hidden="true">&#215;</span>
           </button>
         </div>
+
         <p className="sidebar-caption">قطعات تخصصی سیستم اگزوز</p>
         <div className="sidebar-rule" />
+
         <div className="sidebar-section-head">
           <div>
             <p className="sidebar-label">خودروها</p>
-            <p className="sidebar-section-caption">دسته‌بندی بر اساس برند و مدل</p>
+            <p className="sidebar-section-caption">
+              دسته‌بندی بر اساس برند و خودرو
+            </p>
           </div>
-          <span className="sidebar-section-mark" aria-hidden="true">۰۱</span>
+          <span className="sidebar-section-mark" aria-hidden="true">
+            ۰۱
+          </span>
         </div>
-        <nav aria-label="دسته‌بندی محصولات بر اساس خودرو" className="sidebar-nav">
+
+        <nav
+          aria-label="دسته‌بندی محصولات بر اساس خودرو"
+          className="sidebar-nav"
+        >
           {brandFilters.map((filter, index) => (
             <div className="sidebar-group" key={filter.id}>
               <button
-                aria-expanded={filter.id !== 'all' && selectedBrand === filter.id}
-                aria-controls={filter.id === 'all' ? undefined : `brand-cars-${filter.id}`}
+                aria-expanded={
+                  filter.id !== 'all' && selectedBrand === filter.id
+                }
+                aria-controls={
+                  filter.id === 'all'
+                    ? undefined
+                    : `brand-cars-${filter.id}`
+                }
                 className="sidebar-link"
                 onClick={() => {
                   if (filter.id === 'all') {
@@ -275,49 +398,70 @@ function App() {
                 }}
                 type="button"
               >
-                <span className="sidebar-link-index">{formatId(index + 1, 2)}</span>
+                <span className="sidebar-link-index">
+                  {formatId(index + 1, 2)}
+                </span>
                 <span>{filter.label}</span>
-                {filter.id !== 'all' && <span aria-hidden="true" className="sidebar-chevron" />}
+                {filter.id !== 'all' && (
+                  <span
+                    aria-hidden="true"
+                    className="sidebar-chevron"
+                  />
+                )}
               </button>
+
               {selectedBrand === filter.id && filter.id !== 'all' && (
-                <div className="sidebar-car-list" id={`brand-cars-${filter.id}`}>
+                <div
+                  className="sidebar-car-list"
+                  id={`brand-cars-${filter.id}`}
+                >
                   {loadingBrand === filter.id && (
-                    <p className="sidebar-state sidebar-loading"><span aria-hidden="true" />در حال دریافت خودروها...</p>
+                    <p className="sidebar-state sidebar-loading">
+                      <span aria-hidden="true" />
+                      در حال دریافت خودروها...
+                    </p>
                   )}
+
                   {carErrors[filter.id] && (
                     <div className="sidebar-error" role="alert">
-                      <p className="sidebar-state">{carErrors[filter.id]}</p>
-                      <button className="sidebar-retry" onClick={() => loadBrandCars(filter.id)} type="button">
+                      <p className="sidebar-state">
+                        {carErrors[filter.id]}
+                      </p>
+                      <button
+                        className="sidebar-retry"
+                        onClick={() => loadBrandCars(filter.id)}
+                        type="button"
+                      >
                         تلاش دوباره <span aria-hidden="true">&#8635;</span>
                       </button>
                     </div>
                   )}
-                  {!carErrors[filter.id] && loadingBrand !== filter.id && cars.length === 0 && (
-                    <p className="sidebar-state">خودرویی برای این برند ثبت نشده است.</p>
-                  )}
+
+                  {!carErrors[filter.id] &&
+                    loadingBrand !== filter.id &&
+                    cars.length === 0 && (
+                      <p className="sidebar-state">
+                        خودرویی برای این برند ثبت نشده است.
+                      </p>
+                    )}
+
                   {cars.map((car) => (
                     <div className="sidebar-car-group" key={car.id}>
                       <button
-                        aria-expanded={selectedCar === car.id}
-                        aria-controls={car.variants.length ? `car-variants-${car.id}` : undefined}
-                        className="sidebar-car-link"
-                        onClick={() => setSelectedCar((currentCar) => currentCar === car.id ? null : car.id)}
+                        aria-pressed={Number(selectedCar) === Number(car.id)}
+                        className={`sidebar-car-link${Number(selectedCar) === Number(car.id) ? ' is-selected' : ''}`}
+                        onClick={() => {
+                          setSelectedCar((current) =>
+                            Number(current) === Number(car.id)
+                              ? null
+                              : car.id,
+                          )
+                          setSidebarOpen(false)
+                        }}
                         type="button"
                       >
                         <span>{car.name}</span>
-                        <span aria-hidden="true" className="sidebar-variant-toggle" />
                       </button>
-                      {selectedCar === car.id && (
-                        car.variants.length > 0 ? (
-                          <ul className="sidebar-variants" id={`car-variants-${car.id}`}>
-                            {car.variants.map((variant) => (
-                              <li key={variant.id}><span>{variant.model}</span></li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="sidebar-state">مدلی برای این خودرو ثبت نشده است.</p>
-                        )
-                      )}
                     </div>
                   ))}
                 </div>
@@ -325,6 +469,7 @@ function App() {
             </div>
           ))}
         </nav>
+
         <div className="sidebar-bottom">
           <span className="sidebar-accent" />
           <span>ارجان اگزوز</span>
@@ -342,30 +487,53 @@ function App() {
             onClick={() => setSidebarOpen((open) => !open)}
             type="button"
           >
-            <span className="menu-glyph" aria-hidden="true"><i /><i /><i /></span>
+            <span className="menu-glyph" aria-hidden="true">
+              <i /><i /><i />
+            </span>
           </button>
-          <div className="breadcrumbs"><span>فروشگاه</span><span aria-hidden="true">/</span><strong>کاتالوگ</strong></div>
-          <span className="header-caption">ارجان اگزوز / قطعات تخصصی</span>
+
+          <div className="breadcrumbs">
+            <span>فروشگاه</span>
+            <span aria-hidden="true">/</span>
+            <strong>کاتالوگ</strong>
+          </div>
+
+          <span className="header-caption">
+            ارجان اگزوز / قطعات تخصصی
+          </span>
         </header>
 
         <main className="catalog-page" id="top">
-          <section aria-labelledby="page-title" className="catalog-intro-block">
+          <section
+            aria-labelledby="page-title"
+            className="catalog-intro-block"
+          >
             <div>
               <p className="eyebrow">فروشگاه ارجان / سیستم اگزوز</p>
               <h1 id="page-title">قطعات سیستم اگزوز</h1>
-              <p className="intro-description">محصولات موجود را ببینید و برای مشخصات و خودروهای سازگار، جزئیات هر محصول را باز کنید.</p>
+              <p className="intro-description">
+                محصولات موجود را ببینید و برای مشخصات و خودروهای سازگار،
+                جزئیات هر محصول را باز کنید.
+              </p>
             </div>
+
             <div className="catalog-status">
               <span className="status-dot" />
               <span>کاتالوگ محصولات</span>
             </div>
           </section>
 
-          <section aria-labelledby="catalog-title" className="catalog-content" id="catalog">
+          <section
+            aria-labelledby="catalog-title"
+            className="catalog-content"
+            id="catalog"
+          >
             <div className="catalog-toolbar">
-              <h2 id="catalog-title">همه محصولات</h2>
+              <h2 id="catalog-title">{catalogTitle}</h2>
               <span className="product-count" aria-live="polite">
-                {loading ? 'در حال بارگذاری' : `${formatId(products.length)} محصول`}
+                {loading
+                  ? 'در حال بارگذاری'
+                  : `${formatId(visibleProducts.length)} محصول`}
               </span>
             </div>
 
@@ -374,23 +542,62 @@ function App() {
                 <p className="eyebrow">خطا در ارتباط</p>
                 <h3>دسترسی به کاتالوگ ممکن نیست.</h3>
                 <p>{error}</p>
-                <button className="text-button" onClick={retryCatalog} type="button">تلاش دوباره <span aria-hidden="true">&#8592;</span></button>
+                <button
+                  className="text-button"
+                  onClick={retryCatalog}
+                  type="button"
+                >
+                  تلاش دوباره <span aria-hidden="true">&#8592;</span>
+                </button>
               </div>
             ) : loading ? (
-              <div className="product-grid" aria-label="در حال بارگذاری محصولات">
-                {Array.from({ length: 4 }, (_, index) => <div className="product-skeleton" key={index} />)}
+              <div
+                className="product-grid"
+                aria-label="در حال بارگذاری محصولات"
+              >
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div className="product-skeleton" key={index} />
+                ))}
               </div>
-            ) : products.length > 0 ? (
+            ) : visibleProducts.length > 0 ? (
               <div className="product-grid">
-                {products.map((product) => (
-                  <ProductCard key={product.id} onSelect={setSelectedProduct} product={product} />
+                {visibleProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    onSelect={setSelectedProduct}
+                    product={product}
+                  />
                 ))}
               </div>
             ) : (
               <div className="catalog-state empty-state">
-                <p className="eyebrow">هنوز محصولی ثبت نشده</p>
-                <h3>کاتالوگ در حال آماده‌سازی است.</h3>
-                <p>با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.</p>
+                <p className="eyebrow">
+                  {selectedCar !== null
+                    ? 'محصولی برای این خودرو ثبت نشده'
+                    : 'هنوز محصولی ثبت نشده'}
+                </p>
+                <h3>
+                  {selectedCar !== null
+                    ? 'محصول سازگاری برای این خودرو پیدا نشد.'
+                    : 'کاتالوگ در حال آماده‌سازی است.'}
+                </h3>
+                <p>
+                  {selectedCar !== null
+                    ? 'خودروی دیگری را انتخاب کنید یا همه محصولات را ببینید.'
+                    : 'با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.'}
+                </p>
+                {selectedCar !== null && (
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      setSelectedCar(null)
+                      setSelectedBrand(null)
+                    }}
+                    type="button"
+                  >
+                    نمایش همه محصولات
+                  </button>
+                )}
               </div>
             )}
           </section>
@@ -402,7 +609,12 @@ function App() {
         </main>
       </div>
 
-      {selectedProduct && <ProductDialog onClose={() => setSelectedProduct(null)} product={selectedProduct} />}
+      {selectedProduct && (
+        <ProductDialog
+          onClose={() => setSelectedProduct(null)}
+          product={selectedProduct}
+        />
+      )}
     </div>
   )
 }

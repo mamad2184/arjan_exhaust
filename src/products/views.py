@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Car, CarVariant, Product, ProductImage
+from .models import Car, Product
 from .serializers import (
     CarListSerializer,
     ProductDetailSerializer,
@@ -13,9 +13,9 @@ from .serializers import (
 )
 
 
-class CarListWithVariantsView(APIView):
+class CarListView(APIView):
     def get(self, request):
-        cars = Car.objects.prefetch_related("variants").order_by("name", "id")
+        cars = Car.objects.order_by("name", "id")
         brand = request.query_params.get("brand")
 
         if brand:
@@ -33,31 +33,21 @@ class ProductListView(APIView):
     def get(self, request):
         products = (
             Product.objects.all()
-            .prefetch_related(
-                Prefetch(
-                    "car_variants",
-                    queryset=CarVariant.objects.select_related("car"),
-                ),
-                "images",
-            )
+            .prefetch_related("car", "images")
             .order_by("id")
         )
         serializer = ProductListSerializer(products, many=True)
         response = Response(serializer.data)
-        response["Cache-Control"] = "public, max-age=30, stale-while-revalidate=300"
+        response["Cache-Control"] = (
+            "public, max-age=30, stale-while-revalidate=300"
+        )
         return response
 
 
 class ProductDetailView(APIView):
     def get(self, request, pk):
         product = get_object_or_404(
-            Product.objects.prefetch_related(
-                Prefetch(
-                    "car_variants",
-                    queryset=CarVariant.objects.select_related("car"),
-                ),
-                "images",
-            ),
+            Product.objects.prefetch_related("car", "images"),
             pk=pk,
         )
         serializer = ProductDetailSerializer(product)
