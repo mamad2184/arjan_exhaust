@@ -1,0 +1,85 @@
+.sidebar-car-animation {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: flex;
+  width: 108px;
+  height: 54px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  animation: homepage-car-cross 1.7s linear both;
+  will-change: transform, opacity;
+}
+
+.animated-car {
+  display: block;
+  width: 100px;
+  height: 50px;
+  overflow: visible;
+}
+
+.car-headlight {
+  fill: #fff2b0;
+  opacity: 0.2;
+  filter: drop-shadow(0 0 3px #ffe89a);
+  animation: headlights-blink 1.7s linear both;
+  animation-delay: 200ms;
+}
+
+@keyframes homepage-car-cross {
+  0% {
+    opacity: 0;
+    transform: translate(-120px, -50%);
+  }
+
+  5% {
+    opacity: 1;
+  }
+
+  95% {
+    opacity: 1;
+    transform: translate(calc(100vw - 60px), -50%);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(100vw + 120px), -50%);
+  }
+}
+
+/* Two distinct headlight flashes */
+@keyframes headlights-blink {
+  0%,
+  8%,
+  13%,
+  27%,
+  32%,
+  100% {
+    opacity: 0.2;
+  }
+
+  10%,
+  12%,
+  29%,
+  31% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-car-animation,
+  .car-headlight {
+    animation: none;
+  }
+
+  .sidebar-car-animation {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+
+  .car-headlight {
+    opacity: 1;
+  }
+}

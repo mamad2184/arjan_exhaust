@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import {
   fetchCars,
@@ -6,6 +5,7 @@ import {
   fetchProducts,
   getCachedProducts,
 } from './api/products'
+import CarHeadlightAnimation from './components/CarHeadlightAnimation'
 import './App.css'
 
 function formatPrice(value) {
@@ -22,6 +22,15 @@ function formatId(value, width = 0) {
   return new Intl.NumberFormat('fa-IR', {
     useGrouping: false,
   }).format(Number(id))
+}
+
+function Price({ value, className = '' }) {
+  return (
+    <span className={`price-display ${className}`.trim()}>
+      <strong className="price-amount">{formatPrice(value)}</strong>
+      <span className="price-currency" lang="fa">تومان</span>
+    </span>
+  )
 }
 
 function ProductCard({ product, onSelect }) {
@@ -61,7 +70,7 @@ function ProductCard({ product, onSelect }) {
         <span className="product-card-bottom">
           <span className="product-price">
             <span className="eyebrow">قیمت</span>
-            <strong>{formatPrice(product.price)}</strong>
+            <Price value={product.price} />
           </span>
           <span className="product-link">
             مشاهده جزئیات <span aria-hidden="true">&#8598;</span>
@@ -110,6 +119,7 @@ function ProductDialog({ product, onClose }) {
 
   const images = detail?.images?.filter((image) => image.image_url) ?? []
   const cars = detail?.cars ?? []
+  const price = detail?.price ?? product.price
 
   return (
     <div
@@ -160,8 +170,10 @@ function ProductDialog({ product, onClose }) {
 
           <div className="dialog-copy">
             <p className="eyebrow">ارجان اگزوز / کاتالوگ</p>
-            <h2 id="dialog-title">{product.name}</h2>
-            <p className="dialog-price">{formatPrice(product.price)}</p>
+            <h2 id="dialog-title">{detail?.name || product.name}</h2>
+            <p className="dialog-price">
+              <Price value={price} className="dialog-price-display" />
+            </p>
 
             {loading && (
               <p className="dialog-message">
@@ -220,6 +232,7 @@ function App() {
   const [carsByBrand, setCarsByBrand] = useState({})
   const [loadingBrand, setLoadingBrand] = useState(null)
   const [carErrors, setCarErrors] = useState({})
+  const [carAnimation, setCarAnimation] = useState(null)
 
   const brandFilters = [
     { id: 'all', label: 'همه برندها' },
@@ -282,11 +295,13 @@ function App() {
     if (selectedBrand === brand) {
       setSelectedBrand(null)
       setSelectedCar(null)
+      setCarAnimation(null)
       return
     }
 
     setSelectedBrand(brand)
     setSelectedCar(null)
+    setCarAnimation(null)
     loadBrandCars(brand)
   }
 
@@ -294,7 +309,26 @@ function App() {
     setSelectedCar((current) =>
       Number(current) === Number(car.id) ? null : car.id,
     )
+
+    setSidebarOpen(false)
+
+    setCarAnimation((current) => ({
+      id: car.id,
+      key: (current?.key ?? 0) + 1,
+    }))
   }
+
+  useEffect(() => {
+    if (!carAnimation) return
+
+    const timeoutId = window.setTimeout(() => {
+      setCarAnimation((current) =>
+        current?.key === carAnimation.key ? null : current,
+      )
+    }, 1700)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [carAnimation])
 
   useEffect(() => {
     let active = true
@@ -368,7 +402,11 @@ function App() {
             href="#top"
             onClick={() => setSidebarOpen(false)}
           >
-            <span className="brand-mark">ا</span>
+            <img
+              className="brand-logo"
+              src="/images/logo.png"
+              alt=""
+            />
             <span className="brand-name">
               ارجان<span>اگزوز</span>
             </span>
@@ -426,6 +464,7 @@ function App() {
                     if (isAll) {
                       setSelectedBrand(null)
                       setSelectedCar(null)
+                      setCarAnimation(null)
                     } else {
                       selectBrand(filter.id)
                     }
@@ -502,7 +541,10 @@ function App() {
                           onClick={() => selectCar(car)}
                           type="button"
                         >
-                          <span>{car.name}</span>
+                          <span className="sidebar-car-name">
+                            {car.name}
+                          </span>
+
                           {isCarSelected && (
                             <span
                               className="selected-car-mark"
@@ -553,13 +595,8 @@ function App() {
 
           <div className="breadcrumbs">
             <span>فروشگاه</span>
-            <span aria-hidden="true">/</span>
-            <strong>کاتالوگ</strong>
+            <span aria-hidden="true"></span>
           </div>
-
-          <span className="header-caption">
-            ارجان اگزوز / قطعات تخصصی
-          </span>
         </header>
 
         <main className="catalog-page" id="top">
@@ -655,6 +692,7 @@ function App() {
                     onClick={() => {
                       setSelectedCar(null)
                       setSelectedBrand(null)
+                      setCarAnimation(null)
                     }}
                     type="button"
                   >
@@ -671,6 +709,16 @@ function App() {
           </footer>
         </main>
       </div>
+
+      {carAnimation && (
+        <div
+          className="car-animation-layer"
+          aria-hidden="true"
+          key={carAnimation.key}
+        >
+          <CarHeadlightAnimation />
+        </div>
+      )}
 
       {selectedProduct && (
         <ProductDialog
