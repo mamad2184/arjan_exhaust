@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react'
 import {
   fetchCars,
@@ -44,12 +45,17 @@ function ProductCard({ product, onSelect }) {
           />
         ) : (
           <span className="product-image-fallback" aria-hidden="true">
-            <span className="fallback-mark">کد / {formatId(product.id, 2)}</span>
-            <span className="fallback-name">ارجان<br />اگزوز</span>
+            <span className="fallback-mark">
+              کد / {formatId(product.id, 2)}
+            </span>
+            <span className="fallback-name">
+              ارجان<br />اگزوز
+            </span>
           </span>
         )}
         <span className="image-index">{formatId(product.id, 3)}</span>
       </span>
+
       <span className="product-info">
         <span className="product-name">{product.name}</span>
         <span className="product-card-bottom">
@@ -222,15 +228,24 @@ function App() {
     { id: 'other', label: 'ماشین‌های دیگر' },
   ]
 
-  const cars = selectedBrand ? carsByBrand[selectedBrand] ?? [] : []
+  const cars = selectedBrand
+    ? carsByBrand[selectedBrand] ?? []
+    : []
 
-  const visibleProducts = selectedCar === null
-    ? products
-    : products.filter((product) =>
-        (product.cars ?? []).some(
-          (car) => Number(car.id) === Number(selectedCar),
-        ),
-      )
+  const visibleProducts =
+    selectedCar === null
+      ? selectedBrand === null
+        ? products
+        : products.filter((product) =>
+            (product.cars ?? []).some(
+              (car) => car.brand === selectedBrand,
+            ),
+          )
+      : products.filter((product) =>
+          (product.cars ?? []).some(
+            (car) => Number(car.id) === Number(selectedCar),
+          ),
+        )
 
   const loadBrandCars = (brand) => {
     if (
@@ -264,12 +279,21 @@ function App() {
   }
 
   const selectBrand = (brand) => {
-    const isOpening = selectedBrand !== brand
+    if (selectedBrand === brand) {
+      setSelectedBrand(null)
+      setSelectedCar(null)
+      return
+    }
 
-    setSelectedBrand(isOpening ? brand : null)
+    setSelectedBrand(brand)
     setSelectedCar(null)
+    loadBrandCars(brand)
+  }
 
-    if (isOpening) loadBrandCars(brand)
+  const selectCar = (car) => {
+    setSelectedCar((current) =>
+      Number(current) === Number(car.id) ? null : car.id,
+    )
   }
 
   useEffect(() => {
@@ -307,15 +331,18 @@ function App() {
     setReloadKey((key) => key + 1)
   }
 
-  const selectedCarName = selectedCar === null
-    ? null
-    : cars.find((car) => Number(car.id) === Number(selectedCar))?.name
+  const selectedCarName =
+    selectedCar === null
+      ? null
+      : cars.find(
+          (car) => Number(car.id) === Number(selectedCar),
+        )?.name
 
-  const catalogTitle = selectedCarName || (
-    selectedBrand
-      ? brandFilters.find((brand) => brand.id === selectedBrand)?.label
-      : 'همه محصولات'
-  )
+  const selectedBrandLabel =
+    brandFilters.find((brand) => brand.id === selectedBrand)?.label
+
+  const catalogTitle =
+    selectedCarName || selectedBrandLabel || 'همه محصولات'
 
   return (
     <div className="store-layout">
@@ -376,98 +403,122 @@ function App() {
           aria-label="دسته‌بندی محصولات بر اساس خودرو"
           className="sidebar-nav"
         >
-          {brandFilters.map((filter, index) => (
-            <div className="sidebar-group" key={filter.id}>
-              <button
-                aria-expanded={
-                  filter.id !== 'all' && selectedBrand === filter.id
-                }
-                aria-controls={
-                  filter.id === 'all'
-                    ? undefined
-                    : `brand-cars-${filter.id}`
-                }
-                className="sidebar-link"
-                onClick={() => {
-                  if (filter.id === 'all') {
-                    setSelectedBrand(null)
-                    setSelectedCar(null)
-                  } else {
-                    selectBrand(filter.id)
+          {brandFilters.map((filter, index) => {
+            const isAll = filter.id === 'all'
+            const isBrandSelected = selectedBrand === filter.id
+            const isActive = isAll
+              ? selectedBrand === null && selectedCar === null
+              : isBrandSelected
+
+            const brandCars = carsByBrand[filter.id] ?? []
+            const brandLoading = loadingBrand === filter.id
+
+            return (
+              <div className="sidebar-group" key={filter.id}>
+                <button
+                  aria-current={isActive ? 'true' : undefined}
+                  aria-expanded={!isAll && isBrandSelected}
+                  aria-controls={
+                    isAll ? undefined : `brand-cars-${filter.id}`
                   }
-                }}
-                type="button"
-              >
-                <span className="sidebar-link-index">
-                  {formatId(index + 1, 2)}
-                </span>
-                <span>{filter.label}</span>
-                {filter.id !== 'all' && (
-                  <span
-                    aria-hidden="true"
-                    className="sidebar-chevron"
-                  />
-                )}
-              </button>
-
-              {selectedBrand === filter.id && filter.id !== 'all' && (
-                <div
-                  className="sidebar-car-list"
-                  id={`brand-cars-${filter.id}`}
+                  className={`sidebar-link${isActive ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    if (isAll) {
+                      setSelectedBrand(null)
+                      setSelectedCar(null)
+                    } else {
+                      selectBrand(filter.id)
+                    }
+                  }}
+                  type="button"
                 >
-                  {loadingBrand === filter.id && (
-                    <p className="sidebar-state sidebar-loading">
-                      <span aria-hidden="true" />
-                      در حال دریافت خودروها...
-                    </p>
+                  <span className="sidebar-link-index">
+                    {formatId(index + 1, 2)}
+                  </span>
+                  <span>{filter.label}</span>
+                  {!isAll && (
+                    <span
+                      aria-hidden="true"
+                      className={`sidebar-chevron${isBrandSelected ? ' is-open' : ''}`}
+                    />
                   )}
+                </button>
 
-                  {carErrors[filter.id] && (
-                    <div className="sidebar-error" role="alert">
-                      <p className="sidebar-state">
-                        {carErrors[filter.id]}
-                      </p>
-                      <button
-                        className="sidebar-retry"
-                        onClick={() => loadBrandCars(filter.id)}
-                        type="button"
-                      >
-                        تلاش دوباره <span aria-hidden="true">&#8635;</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {!carErrors[filter.id] &&
-                    loadingBrand !== filter.id &&
-                    cars.length === 0 && (
-                      <p className="sidebar-state">
-                        خودرویی برای این برند ثبت نشده است.
+                {!isAll && isBrandSelected && (
+                  <div
+                    className="sidebar-car-list"
+                    id={`brand-cars-${filter.id}`}
+                  >
+                    {brandLoading && (
+                      <p className="sidebar-state sidebar-loading">
+                        <span aria-hidden="true" />
+                        در حال دریافت خودروها...
                       </p>
                     )}
 
-                  {cars.map((car) => (
-                    <div className="sidebar-car-group" key={car.id}>
-                      <button
-                        aria-pressed={Number(selectedCar) === Number(car.id)}
-                        className={`sidebar-car-link${Number(selectedCar) === Number(car.id) ? ' is-selected' : ''}`}
-                        onClick={() => {
-                          setSelectedCar((current) =>
-                            Number(current) === Number(car.id)
-                              ? null
-                              : car.id,
-                          )
-                          setSidebarOpen(false)
-                        }}
-                        type="button"
-                      >
-                        <span>{car.name}</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                    {carErrors[filter.id] && (
+                      <div className="sidebar-error" role="alert">
+                        <p className="sidebar-state">
+                          {carErrors[filter.id]}
+                        </p>
+                        <button
+                          className="sidebar-retry"
+                          onClick={() => {
+                            setCarsByBrand((current) => {
+                              const next = { ...current }
+                              delete next[filter.id]
+                              return next
+                            })
+                            setCarErrors((current) => ({
+                              ...current,
+                              [filter.id]: '',
+                            }))
+                            loadBrandCars(filter.id)
+                          }}
+                          type="button"
+                        >
+                          تلاش دوباره <span aria-hidden="true">&#8635;</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {!carErrors[filter.id] &&
+                      !brandLoading &&
+                      brandCars.length === 0 && (
+                        <p className="sidebar-state">
+                          خودرویی برای این برند ثبت نشده است.
+                        </p>
+                      )}
+
+                    {brandCars.map((car) => {
+                      const isCarSelected =
+                        Number(selectedCar) === Number(car.id)
+
+                      return (
+                        <button
+                          key={car.id}
+                          aria-pressed={isCarSelected}
+                          className={`sidebar-car-link${isCarSelected ? ' is-selected' : ''}`}
+                          onClick={() => selectCar(car)}
+                          type="button"
+                        >
+                          <span>{car.name}</span>
+                          {isCarSelected && (
+                            <span
+                              className="selected-car-mark"
+                              aria-hidden="true"
+                            >
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         <div className="sidebar-bottom">
@@ -574,19 +625,23 @@ function App() {
                 <p className="eyebrow">
                   {selectedCar !== null
                     ? 'محصولی برای این خودرو ثبت نشده'
-                    : 'هنوز محصولی ثبت نشده'}
+                    : selectedBrand !== null
+                      ? 'محصولی برای این برند ثبت نشده'
+                      : 'هنوز محصولی ثبت نشده'}
                 </p>
                 <h3>
                   {selectedCar !== null
                     ? 'محصول سازگاری برای این خودرو پیدا نشد.'
-                    : 'کاتالوگ در حال آماده‌سازی است.'}
+                    : selectedBrand !== null
+                      ? 'محصولی برای این برند پیدا نشد.'
+                      : 'کاتالوگ در حال آماده‌سازی است.'}
                 </h3>
                 <p>
-                  {selectedCar !== null
-                    ? 'خودروی دیگری را انتخاب کنید یا همه محصولات را ببینید.'
+                  {selectedCar !== null || selectedBrand !== null
+                    ? 'خودرو یا برند دیگری را انتخاب کنید یا همه محصولات را ببینید.'
                     : 'با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.'}
                 </p>
-                {selectedCar !== null && (
+                {(selectedCar !== null || selectedBrand !== null) && (
                   <button
                     className="text-button"
                     onClick={() => {
