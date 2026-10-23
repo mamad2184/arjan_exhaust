@@ -543,6 +543,14 @@ function App() {
             </span>
           </button>
 
+          <a
+            aria-label="ارجان اگزوز - صفحه اصلی"
+            className="header-brand"
+            href="#top"
+          >
+            <img src="/images/logo.png" alt="" />
+          </a>
+
           <div className="breadcrumbs">
             <span>فروشگاه</span>
             <span aria-hidden="true">/</span>
