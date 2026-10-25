@@ -3,6 +3,7 @@ import {
   fetchCars,
   fetchProduct,
   fetchProducts,
+  fetchProductsPage,
   getCachedProducts,
   getCachedSearchProducts,
 } from './api/products'
@@ -218,7 +219,6 @@ function ProductDialog({ product, onClose }) {
 }
 
 function normalizeSearchText(value = '') {
-  // Whitespace only; preserve Persian and Arabic characters as entered.
   return value.trim().replace(/\s+/g, ' ')
 }
 
@@ -254,6 +254,10 @@ function filterProductsLocally(products, search) {
 function App() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [nextPage, setNextPage] = useState(2)
+  const [totalProducts, setTotalProducts] = useState(0)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState(null)
@@ -287,7 +291,6 @@ function App() {
           (car) => Number(car.id) === Number(selectedCar),
         )?.name || 'محصولات خودرو'
 
-  // Debounce backend requests, but do not delay local filtering.
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearch(normalizeSearchText(searchTerm))
@@ -296,7 +299,6 @@ function App() {
     return () => window.clearTimeout(timeoutId)
   }, [searchTerm])
 
-  // Display cached candidates immediately while the backend search runs.
   useEffect(() => {
     const search = normalizeSearchText(searchTerm)
 
@@ -324,42 +326,36 @@ function App() {
     }
   }, [searchTerm, selectedBrand, selectedCar])
 
-  // Fetch authoritative results after the user pauses typing.
+  // Fetch the first page whenever search or filters change.
   useEffect(() => {
     let active = true
 
-    const hasFilters = Boolean(
-      debouncedSearch || selectedBrand || selectedCar !== null,
-    )
-
-    const cachedProducts = hasFilters ? null : getCachedProducts()
-
-    if (Array.isArray(cachedProducts)) {
-      setProducts(cachedProducts)
-      setLoading(false)
-    } else {
-      setLoading(true)
-    }
-
-    setError('')
-
-    fetchProducts({
+    const filters = {
       search: debouncedSearch,
       brand: selectedBrand ?? '',
       car: selectedCar ?? '',
-    })
+    }
+
+    setLoading(true)
+    setLoadingMore(false)
+    setHasMore(false)
+    setNextPage(2)
+    setTotalProducts(0)
+    setError('')
+    setProducts([])
+
+    fetchProductsPage({ ...filters, page: 1 })
       .then((data) => {
         if (!active) return
 
-        setProducts(Array.isArray(data) ? data : [])
-        setError('')
+        setProducts(data.results)
+        setTotalProducts(data.count)
+        setHasMore(data.next !== null)
+        setNextPage(2)
       })
       .catch((requestError) => {
         if (!active) return
-
-        if (!Array.isArray(cachedProducts) || hasFilters) {
-          setError(requestError.message)
-        }
+        setError(requestError.message)
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -369,6 +365,37 @@ function App() {
       active = false
     }
   }, [reloadKey, debouncedSearch, selectedBrand, selectedCar])
+
+  const loadMoreProducts = async () => {
+    if (loadingMore || !hasMore) return
+
+    setLoadingMore(true)
+    setError('')
+
+    try {
+      const data = await fetchProductsPage({
+        search: debouncedSearch,
+        brand: selectedBrand ?? '',
+        car: selectedCar ?? '',
+        page: nextPage,
+      })
+
+      setProducts((current) => {
+        const existingIds = new Set(current.map((product) => product.id))
+        const newProducts = data.results.filter(
+          (product) => !existingIds.has(product.id),
+        )
+        return [...current, ...newProducts]
+      })
+
+      setHasMore(data.next !== null)
+      setNextPage((page) => page + 1)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const loadBrandCars = (brand) => {
     if (
@@ -714,7 +741,7 @@ function App() {
               <span className="product-count" aria-live="polite">
                 {loading
                   ? 'در حال جست‌وجو...'
-                  : `${formatId(products.length)} محصول`}
+                  : `${formatId(products.length)} از ${formatId(totalProducts)} محصول`}
               </span>
             </div>
 
@@ -757,15 +784,41 @@ function App() {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <div className="product-grid">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    onSelect={setSelectedProduct}
-                    product={product}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="product-grid">
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      onSelect={setSelectedProduct}
+                      product={product}
+                    />
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <div className="load-more-wrap">
+                    <button
+                      className="text-button load-more-button"
+                      disabled={loadingMore}
+                      onClick={loadMoreProducts}
+                      type="button"
+                    >
+                      {loadingMore
+                        ? 'در حال دریافت محصولات...'
+                        : 'نمایش محصولات بیشتر'}
+                      {!loadingMore && (
+                        <span aria-hidden="true">&#8595;</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {loadingMore && (
+                  <p className="catalog-message" role="status">
+                    در حال بارگذاری محصولات بعدی...
+                  </p>
+                )}
+              </>
             ) : (
               <div className="catalog-state empty-state">
                 <p className="eyebrow">

@@ -41,6 +41,18 @@ function rememberSearchResults(key, products) {
   }
 }
 
+function buildProductsPath({ search = '', brand = '', car = '', page = 1 } = {}) {
+  const params = new URLSearchParams()
+  const normalizedSearch = normalizeSearchKey(search)
+
+  if (normalizedSearch) params.set('search', normalizedSearch)
+  if (brand) params.set('brand', brand)
+  if (car) params.set('car', car)
+  params.set('page', String(page))
+
+  return `/products/?${params.toString()}`
+}
+
 export function getCachedProducts() {
   try {
     const cached = localStorage.getItem(catalogCacheKey)
@@ -71,42 +83,33 @@ export function getCachedSearchProducts({
   return getCachedProducts()
 }
 
-export function fetchProducts({
+export function fetchProductsPage({
   search = '',
   brand = '',
   car = '',
+  page = 1,
 } = {}) {
-  const normalizedSearch = normalizeSearchKey(search)
-  const params = new URLSearchParams()
-
-  if (normalizedSearch) params.set('search', normalizedSearch)
-  if (brand) params.set('brand', brand)
-  if (car) params.set('car', car)
-
-  const query = params.toString()
-  const path = `/products/${query ? `?${query}` : ''}`
+  const path = buildProductsPath({ search, brand, car, page })
 
   if (!productsRequests.has(path)) {
     const request = getJson(path)
       .then((data) => {
-        const products = Array.isArray(data) ? data : []
-
-        if (!query) {
-          try {
-            localStorage.setItem(
-              catalogCacheKey,
-              JSON.stringify(products),
-            )
-          } catch {
-            // Storage may be unavailable or full.
+        // Support the paginated response and legacy array responses.
+        if (Array.isArray(data)) {
+          return {
+            count: data.length,
+            next: null,
+            previous: null,
+            results: data,
           }
         }
 
-        if (normalizedSearch && !brand && !car) {
-          rememberSearchResults(normalizedSearch, products)
+        return {
+          count: data.count ?? 0,
+          next: data.next ?? null,
+          previous: data.previous ?? null,
+          results: Array.isArray(data.results) ? data.results : [],
         }
-
-        return products
       })
       .finally(() => {
         productsRequests.delete(path)
@@ -116,6 +119,27 @@ export function fetchProducts({
   }
 
   return productsRequests.get(path)
+}
+
+export async function fetchProducts(filters = {}) {
+  const result = await fetchProductsPage({ ...filters, page: 1 })
+  const products = result.results
+
+  if (!filters.search && !filters.brand && !filters.car) {
+    try {
+      localStorage.setItem(catalogCacheKey, JSON.stringify(products))
+    } catch {
+      // Storage may be unavailable or full.
+    }
+  }
+
+  const normalizedSearch = normalizeSearchKey(filters.search || '')
+
+  if (normalizedSearch && !filters.brand && !filters.car) {
+    rememberSearchResults(normalizedSearch, products)
+  }
+
+  return products
 }
 
 export function fetchProduct(id) {

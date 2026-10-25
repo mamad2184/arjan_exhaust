@@ -368,3 +368,71 @@ a { color: inherit; }
 .dialog-price-display .price-currency {
   color: var(--coral);
 }
+
+
+/* Load More pagination */
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 12px;
+}
+
+.load-more-button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0;
+  padding: 0 24px;
+  border: 1px solid var(--teal);
+  background: var(--teal);
+  color: var(--white);
+  font: 700 12px var(--body);
+  cursor: pointer;
+  transition:
+    background .18s ease,
+    border-color .18s ease,
+    transform .18s ease,
+    opacity .18s ease;
+}
+
+.load-more-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--teal-soft);
+  background: var(--teal-soft);
+}
+
+.load-more-button span {
+  color: var(--coral);
+  font-size: 17px;
+}
+
+.load-more-button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.load-more-button:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 3px;
+}
+
+.catalog-message {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+@media (max-width: 680px) {
+  .load-more-wrap {
+    padding-top: 22px;
+  }
+
+  .load-more-button {
+    width: 100%;
+    min-height: 44px;
+  }
+}

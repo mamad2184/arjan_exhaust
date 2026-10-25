@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator, EmptyPage
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -35,6 +36,8 @@ class CarListView(APIView):
 
 @method_decorator(cache_page(60), name="dispatch")
 class ProductListView(APIView):
+    page_size = 15
+
     def get(self, request):
         products = Product.objects.prefetch_related("car", "images")
 
@@ -82,8 +85,34 @@ class ProductListView(APIView):
 
         products = products.order_by("id").distinct()
 
-        serializer = ProductListSerializer(products, many=True)
-        response = Response(serializer.data)
+        paginator = Paginator(products, self.page_size)
+        page_number = request.query_params.get("page", "1")
+
+        try:
+            page = paginator.page(page_number)
+        except (EmptyPage, ValueError):
+            return Response(
+                {"detail": "Invalid page number."},
+                status=400,
+            )
+
+        serializer = ProductListSerializer(page.object_list, many=True)
+
+        response = Response({
+            "count": paginator.count,
+            "next": (
+                page.next_page_number()
+                if page.has_next()
+                else None
+            ),
+            "previous": (
+                page.previous_page_number()
+                if page.has_previous()
+                else None
+            ),
+            "results": serializer.data,
+        })
+
         response["Cache-Control"] = (
             "public, max-age=30, stale-while-revalidate=300"
         )
