@@ -4,6 +4,7 @@ import {
   fetchProduct,
   fetchProducts,
   getCachedProducts,
+  getCachedSearchProducts,
 } from './api/products'
 import CarHeadlightAnimation from './components/CarHeadlightAnimation'
 import './App.css'
@@ -54,15 +55,11 @@ function ProductCard({ product, onSelect }) {
           />
         ) : (
           <span className="product-image-fallback" aria-hidden="true">
-            <span className="fallback-mark">
-              کد / {formatId(product.id, 2)}
-            </span>
             <span className="fallback-name">
               ارجان<br />اگزوز
             </span>
           </span>
         )}
-        <span className="image-index">{formatId(product.id, 3)}</span>
       </span>
 
       <span className="product-info">
@@ -220,6 +217,40 @@ function ProductDialog({ product, onClose }) {
   )
 }
 
+function normalizeSearchText(value = '') {
+  // Whitespace only; preserve Persian and Arabic characters as entered.
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function filterProductsLocally(products, search) {
+  if (!Array.isArray(products)) return []
+
+  const terms = normalizeSearchText(search)
+    .split(' ')
+    .filter(Boolean)
+
+  if (terms.length === 0) return products
+
+  return products.filter((product) => {
+    const searchableText = [
+      product.name,
+      product.description,
+      ...(Array.isArray(product.cars)
+        ? product.cars.map((car) => car.name)
+        : []),
+      ...(Array.isArray(product.car)
+        ? product.car.map((car) =>
+            typeof car === 'string' ? car : car?.name,
+          )
+        : []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    return terms.every((term) => searchableText.includes(term))
+  })
+}
+
 function App() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -233,6 +264,8 @@ function App() {
   const [loadingBrand, setLoadingBrand] = useState(null)
   const [carErrors, setCarErrors] = useState({})
   const [carAnimation, setCarAnimation] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
   const brandFilters = [
     { id: 'all', label: 'همه برندها' },
@@ -245,20 +278,97 @@ function App() {
     ? carsByBrand[selectedBrand] ?? []
     : []
 
-  const visibleProducts =
+  const catalogTitle =
     selectedCar === null
       ? selectedBrand === null
-        ? products
-        : products.filter((product) =>
-            (product.cars ?? []).some(
-              (car) => car.brand === selectedBrand,
-            ),
-          )
-      : products.filter((product) =>
-          (product.cars ?? []).some(
-            (car) => Number(car.id) === Number(selectedCar),
-          ),
-        )
+        ? 'همه محصولات'
+        : brandFilters.find((brand) => brand.id === selectedBrand)?.label
+      : cars.find(
+          (car) => Number(car.id) === Number(selectedCar),
+        )?.name || 'محصولات خودرو'
+
+  // Debounce backend requests, but do not delay local filtering.
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(normalizeSearchText(searchTerm))
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchTerm])
+
+  // Display cached candidates immediately while the backend search runs.
+  useEffect(() => {
+    const search = normalizeSearchText(searchTerm)
+
+    if (!search) {
+      if (!selectedBrand && selectedCar === null) {
+        const cached = getCachedProducts()
+
+        if (Array.isArray(cached)) {
+          setProducts(cached)
+          setLoading(false)
+        }
+      }
+      return
+    }
+
+    const cachedCandidates = getCachedSearchProducts({
+      search,
+      brand: selectedBrand ?? '',
+      car: selectedCar ?? '',
+    })
+
+    if (Array.isArray(cachedCandidates)) {
+      setProducts(filterProductsLocally(cachedCandidates, search))
+      setLoading(false)
+    }
+  }, [searchTerm, selectedBrand, selectedCar])
+
+  // Fetch authoritative results after the user pauses typing.
+  useEffect(() => {
+    let active = true
+
+    const hasFilters = Boolean(
+      debouncedSearch || selectedBrand || selectedCar !== null,
+    )
+
+    const cachedProducts = hasFilters ? null : getCachedProducts()
+
+    if (Array.isArray(cachedProducts)) {
+      setProducts(cachedProducts)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
+
+    setError('')
+
+    fetchProducts({
+      search: debouncedSearch,
+      brand: selectedBrand ?? '',
+      car: selectedCar ?? '',
+    })
+      .then((data) => {
+        if (!active) return
+
+        setProducts(Array.isArray(data) ? data : [])
+        setError('')
+      })
+      .catch((requestError) => {
+        if (!active) return
+
+        if (!Array.isArray(cachedProducts) || hasFilters) {
+          setError(requestError.message)
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [reloadKey, debouncedSearch, selectedBrand, selectedCar])
 
   const loadBrandCars = (brand) => {
     if (
@@ -330,53 +440,24 @@ function App() {
     return () => window.clearTimeout(timeoutId)
   }, [carAnimation])
 
-  useEffect(() => {
-    let active = true
-    const cachedProducts = getCachedProducts()
-
-    if (Array.isArray(cachedProducts)) {
-      setProducts(cachedProducts)
-      setLoading(false)
-    }
-
-    fetchProducts()
-      .then((data) => {
-        if (!active) return
-        setProducts(Array.isArray(data) ? data : [])
-        setError('')
-      })
-      .catch((requestError) => {
-        if (active && !Array.isArray(cachedProducts)) {
-          setError(requestError.message)
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [reloadKey])
-
   const retryCatalog = () => {
     setLoading(true)
     setError('')
     setReloadKey((key) => key + 1)
   }
 
-  const selectedCarName =
-    selectedCar === null
-      ? null
-      : cars.find(
-          (car) => Number(car.id) === Number(selectedCar),
-        )?.name
+  const showAllProducts = () => {
+    setSelectedBrand(null)
+    setSelectedCar(null)
+    setCarAnimation(null)
+    setSearchTerm('')
+    setDebouncedSearch('')
+    setSidebarOpen(false)
 
-  const selectedBrandLabel =
-    brandFilters.find((brand) => brand.id === selectedBrand)?.label
-
-  const catalogTitle =
-    selectedCarName || selectedBrandLabel || 'همه محصولات'
+    document.getElementById('catalog')?.scrollIntoView({
+      behavior: 'smooth',
+    })
+  }
 
   return (
     <div className="store-layout">
@@ -397,10 +478,10 @@ function App() {
       >
         <div className="sidebar-head">
           <a
-            aria-label="صفحه اصلی ارجان اگزوز"
+            aria-label="نمایش همه محصولات ارجان اگزوز"
             className="brand"
-            href="#top"
-            onClick={() => setSidebarOpen(false)}
+            href="#catalog"
+            onClick={showAllProducts}
           >
             <img
               className="brand-logo"
@@ -586,9 +667,10 @@ function App() {
           </button>
 
           <a
-            aria-label="ارجان اگزوز - صفحه اصلی"
+            aria-label="ارجان اگزوز - نمایش همه محصولات"
             className="header-brand"
-            href="#top"
+            href="#catalog"
+            onClick={showAllProducts}
           >
             <img src="/images/logo.png" alt="" />
           </a>
@@ -625,12 +707,31 @@ function App() {
             id="catalog"
           >
             <div className="catalog-toolbar">
-              <h2 id="catalog-title">{catalogTitle}</h2>
+              <h2 id="catalog-title">
+                {searchTerm.trim() ? 'نتایج جست‌وجو' : catalogTitle}
+              </h2>
+
               <span className="product-count" aria-live="polite">
                 {loading
-                  ? 'در حال بارگذاری'
-                  : `${formatId(visibleProducts.length)} محصول`}
+                  ? 'در حال جست‌وجو...'
+                  : `${formatId(products.length)} محصول`}
               </span>
+            </div>
+
+            <div className="catalog-search-wrap">
+              <label className="catalog-search-label" htmlFor="product-search">
+                جست‌وجوی محصولات
+              </label>
+              <input
+                autoComplete="off"
+                className="catalog-search"
+                id="product-search"
+                name="search"
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="نام محصول، خودرو یا قطعه را وارد کنید..."
+                type="search"
+                value={searchTerm}
+              />
             </div>
 
             {error ? (
@@ -655,9 +756,9 @@ function App() {
                   <div className="product-skeleton" key={index} />
                 ))}
               </div>
-            ) : visibleProducts.length > 0 ? (
+            ) : products.length > 0 ? (
               <div className="product-grid">
-                {visibleProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard
                     key={product.id}
                     onSelect={setSelectedProduct}
@@ -668,32 +769,36 @@ function App() {
             ) : (
               <div className="catalog-state empty-state">
                 <p className="eyebrow">
-                  {selectedCar !== null
-                    ? 'محصولی برای این خودرو ثبت نشده'
-                    : selectedBrand !== null
-                      ? 'محصولی برای این برند ثبت نشده'
-                      : 'هنوز محصولی ثبت نشده'}
+                  {searchTerm.trim()
+                    ? 'نتیجه‌ای پیدا نشد'
+                    : selectedCar !== null
+                      ? 'محصولی برای این خودرو ثبت نشده'
+                      : selectedBrand !== null
+                        ? 'محصولی برای این برند ثبت نشده'
+                        : 'هنوز محصولی ثبت نشده'}
                 </p>
                 <h3>
-                  {selectedCar !== null
-                    ? 'محصول سازگاری برای این خودرو پیدا نشد.'
-                    : selectedBrand !== null
-                      ? 'محصولی برای این برند پیدا نشد.'
-                      : 'کاتالوگ در حال آماده‌سازی است.'}
+                  {searchTerm.trim()
+                    ? 'محصولی مطابق جست‌وجوی شما پیدا نشد.'
+                    : selectedCar !== null
+                      ? 'محصول سازگاری برای این خودرو پیدا نشد.'
+                      : selectedBrand !== null
+                        ? 'محصولی برای این برند پیدا نشد.'
+                        : 'کاتالوگ در حال آماده‌سازی است.'}
                 </h3>
                 <p>
-                  {selectedCar !== null || selectedBrand !== null
-                    ? 'خودرو یا برند دیگری را انتخاب کنید یا همه محصولات را ببینید.'
-                    : 'با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.'}
+                  {searchTerm.trim()
+                    ? 'عبارت دیگری را امتحان کنید.'
+                    : selectedCar !== null || selectedBrand !== null
+                      ? 'خودرو یا برند دیگری را انتخاب کنید یا همه محصولات را ببینید.'
+                      : 'با ثبت محصولات جدید، آن‌ها را در همین‌جا خواهید دید.'}
                 </p>
-                {(selectedCar !== null || selectedBrand !== null) && (
+                {(searchTerm.trim() ||
+                  selectedCar !== null ||
+                  selectedBrand !== null) && (
                   <button
                     className="text-button"
-                    onClick={() => {
-                      setSelectedCar(null)
-                      setSelectedBrand(null)
-                      setCarAnimation(null)
-                    }}
+                    onClick={showAllProducts}
                     type="button"
                   >
                     نمایش همه محصولات

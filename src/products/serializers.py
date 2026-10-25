@@ -19,7 +19,6 @@ class ProductImageSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         return obj.image.url if obj.image else None
 
-
 class ProductListSerializer(serializers.ModelSerializer):
     cars = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
@@ -35,11 +34,11 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_image_url(self, obj):
-        for image in obj.images.all():
-            if image.image:
-                return image.image.url
-        return None
-
+        image = next(
+            (image for image in obj.images.all() if image.image),
+            None,
+        )
+        return image.image.url if image else None
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     cars = serializers.SerializerMethodField()

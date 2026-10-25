@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from PIL import Image as PillowImage
 from PIL import UnidentifiedImageError
 
-from utils.products.s3_storage import SupabaseS3Storage
+from utils.s3_storage import SupabaseS3Storage
 
 
 logger = logging.getLogger(__name__)
