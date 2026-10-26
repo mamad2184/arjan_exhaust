@@ -1,4 +1,9 @@
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || (
+  import.meta.env.DEV
+    ? 'http://127.0.0.1:8000'
+    : 'https://arjan-exhaust-api.onrender.com'
+)
+
 const detailCache = new Map()
 const carListsCache = new Map()
 const productsRequests = new Map()
@@ -14,9 +19,12 @@ async function getJson(path) {
   let response
 
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, {
-      headers: { Accept: 'application/json' },
-    })
+    response = await fetch(
+      `${import.meta.env.DEV ? '' : apiBaseUrl}${path}`,
+      {
+        headers: { Accept: 'application/json' },
+      },
+    )
   } catch {
     throw new Error('از اتصال و فعال بودن سرویس محصولات اطمینان حاصل کنید.')
   }
