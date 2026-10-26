@@ -120,10 +120,13 @@ class ProductListView(APIView):
 
 
 class ProductDetailView(APIView):
+    @method_decorator(cache_page(60))
     def get(self, request, pk):
         product = get_object_or_404(
             Product.objects.prefetch_related("car", "images"),
             pk=pk,
         )
         serializer = ProductDetailSerializer(product)
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        response["Cache-Control"] = "public, max-age=30, stale-while-revalidate=300"
+        return response
