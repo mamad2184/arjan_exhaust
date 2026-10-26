@@ -2,6 +2,9 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 const detailCache = new Map()
 const carListsCache = new Map()
 const productsRequests = new Map()
+const productsPageCache = new Map()
+const productsPageCacheLimit = 30
+const productsPageCacheTtl = 30_000
 const searchCache = new Map()
 
 const catalogCacheKey = 'arjan-exhaust-products-v1'
@@ -90,26 +93,45 @@ export function fetchProductsPage({
   page = 1,
 } = {}) {
   const path = buildProductsPath({ search, brand, car, page })
+  const cached = productsPageCache.get(path)
+
+  if (cached && cached.expiresAt > Date.now()) {
+    productsPageCache.delete(path)
+    productsPageCache.set(path, cached)
+    return Promise.resolve(cached.data)
+  }
+
+  if (cached) productsPageCache.delete(path)
 
   if (!productsRequests.has(path)) {
     const request = getJson(path)
       .then((data) => {
         // Support the paginated response and legacy array responses.
-        if (Array.isArray(data)) {
-          return {
-            count: data.length,
-            next: null,
-            previous: null,
-            results: data,
-          }
+        const result = Array.isArray(data)
+          ? {
+              count: data.length,
+              next: null,
+              previous: null,
+              results: data,
+            }
+          : {
+              count: data.count ?? 0,
+              next: data.next ?? null,
+              previous: data.previous ?? null,
+              results: Array.isArray(data.results) ? data.results : [],
+            }
+
+        productsPageCache.set(path, {
+          data: result,
+          expiresAt: Date.now() + productsPageCacheTtl,
+        })
+
+        while (productsPageCache.size > productsPageCacheLimit) {
+          const oldestKey = productsPageCache.keys().next().value
+          productsPageCache.delete(oldestKey)
         }
 
-        return {
-          count: data.count ?? 0,
-          next: data.next ?? null,
-          previous: data.previous ?? null,
-          results: Array.isArray(data.results) ? data.results : [],
-        }
+        return result
       })
       .finally(() => {
         productsRequests.delete(path)
