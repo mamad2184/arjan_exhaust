@@ -1,8 +1,10 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || (
-  import.meta.env.DEV
+
+const apiBaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV
     ? 'http://127.0.0.1:8000'
-    : 'https://arjan-exhaust-api.onrender.com'
-)
+    : 'https://arjan-exhaust-api.onrender.com')
+).replace(/\/+$/, '')
 
 const detailCache = new Map()
 const carListsCache = new Map()
@@ -16,15 +18,14 @@ const catalogCacheKey = 'arjan-exhaust-products-v1'
 const searchCacheLimit = 30
 
 async function getJson(path) {
+  const url = `${apiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`
+
   let response
 
   try {
-    response = await fetch(
-      `${import.meta.env.DEV ? '' : apiBaseUrl}${path}`,
-      {
-        headers: { Accept: 'application/json' },
-      },
-    )
+    response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+    })
   } catch {
     throw new Error('از اتصال و فعال بودن سرویس محصولات اطمینان حاصل کنید.')
   }
@@ -33,6 +34,12 @@ async function getJson(path) {
     throw new Error(
       `دریافت اطلاعات با خطای ${new Intl.NumberFormat('fa-IR').format(response.status)} روبه‌رو شد.`,
     )
+  }
+
+  const contentType = response.headers.get('content-type') || ''
+
+  if (!contentType.includes('application/json')) {
+    throw new Error('پاسخ سرور محصولات معتبر نیست؛ آدرس API را بررسی کنید.')
   }
 
   return response.json()
@@ -114,7 +121,6 @@ export function fetchProductsPage({
   if (!productsRequests.has(path)) {
     const request = getJson(path)
       .then((data) => {
-        // Support the paginated response and legacy array responses.
         const result = Array.isArray(data)
           ? {
               count: data.length,
