@@ -133,3 +133,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # added by me
 
 AUTH_USER_MODEL = 'customusers.CustomUser'
+
+
+CORS_ALLOWED_ORIGINS = [
+    "https://arjanexhaust.mohamadpykarian.workers.dev",
+    "http://localhost:5173",
+]
