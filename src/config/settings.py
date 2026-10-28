@@ -108,5 +108,6 @@ AUTH_USER_MODEL = "customusers.CustomUser"
 
 CORS_ALLOWED_ORIGINS = [
     "https://arjanexhaust.mohamadpykarian.workers.dev",
+    "https://arjanegzoz.mohamadpykarian.workers.dev/",
     "http://localhost:5173",
 ]
