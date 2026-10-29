@@ -3,7 +3,7 @@ const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV
     ? 'http://127.0.0.1:8000'
-    : 'arjanexhaust-production.up.railway.app')
+    : 'https://arjanexhaust-production.up.railway.app')
 ).replace(/\/+$/, '')
 
 const detailCache = new Map()
